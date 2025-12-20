@@ -9,7 +9,7 @@ import ReactFlow, {
   type Node,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { nodeTypes } from "@/components/flow/nodeTypes";
+import { nodeTypes, edgeTypes } from "@/components/flow/nodeTypes";
 import { nodes as initialNodes, edges } from "./data";
 
 export default function FlowPage() {
@@ -33,6 +33,7 @@ export default function FlowPage() {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
         onInit={(instance) => (reactFlowInstance.current = instance)}
         onNodesChange={onNodesChange}

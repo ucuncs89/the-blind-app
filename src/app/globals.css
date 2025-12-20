@@ -123,3 +123,50 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Edge Animation Styles */
+@keyframes dash-flow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -20px;
+  }
+}
+
+@keyframes glow-pulse {
+  0% {
+    filter: drop-shadow(0 0 4px rgba(100, 116, 139, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(100, 116, 139, 0.8));
+  }
+  100% {
+    filter: drop-shadow(0 0 4px rgba(100, 116, 139, 0.5));
+  }
+}
+
+@keyframes glow-pulse-dark {
+  0% {
+    filter: drop-shadow(0 0 4px rgba(30, 41, 59, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(30, 41, 59, 0.8));
+  }
+  100% {
+    filter: drop-shadow(0 0 4px rgba(30, 41, 59, 0.5));
+  }
+}
+
+.edge-animated {
+  animation: dash-flow 20s linear infinite;
+  stroke-dasharray: 5, 5;
+}
+
+.edge-glow {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.edge-glow-dark {
+  animation: glow-pulse-dark 2s ease-in-out infinite;
+}
