@@ -4,7 +4,6 @@ import React, { useRef, useState, useCallback } from "react";
 import ReactFlow, {
   Background,
   Controls,
-  MiniMap,
   applyNodeChanges,
   type NodeChange,
   type Node,
@@ -53,7 +52,6 @@ export default function FlowPage() {
       >
         <Background />
         <Controls />
-        <MiniMap />
       </ReactFlow>
     </div>
   );
