@@ -51,7 +51,7 @@ export default function FlowPage() {
         onNodeDragStop={onNodeDragStop}
       >
         <Background />
-        <Controls />
+        {/* <Controls /> */}
       </ReactFlow>
     </div>
   );
