@@ -1,214 +1,88 @@
 import { Position } from "reactflow";
 
-// ============= Round 2 (24) ==============
+// Spacing configuration
+const PERSON_GAP = 120; // gap between persons in same group
+const GROUP_GAP = 450; // gap between groups
+const ROUND_2_X = 400; // x position for round 2
 
-const round_2_person_1 = {
-  id: "round_2_person_1",
+// Helper function to calculate Y position for Round 1
+const getGroupStartY = (groupIndex: number) => {
+  return groupIndex * GROUP_GAP;
+};
+
+const getPersonY = (groupIndex: number, personIndex: number) => {
+  return getGroupStartY(groupIndex) + personIndex * PERSON_GAP;
+};
+
+// Round 2 Y position (center of each group)
+const getRound2Y = (groupIndex: number) => {
+  return getGroupStartY(groupIndex) + PERSON_GAP; // center (middle person position)
+};
+
+// ============= Round 2 (15 Winners from each group) ==============
+
+const round_2_nodes = Array.from({ length: 15 }, (_, i) => ({
+  id: `round_2_person_${i + 1}`,
   type: "bracket",
-  position: { x: 300, y: -200 },
+  position: { x: ROUND_2_X, y: getRound2Y(i) },
   sourcePosition: Position.Right,
   targetPosition: Position.Left,
   data: {
-    name: "Winner Group A",
+    name: `Winner Group ${String.fromCharCode(65 + i)}`,
     role: "Round 2",
-    photo: "/avatar/ilham.jpg",
+    photo: i % 2 === 0 ? "/avatar/ilham.jpg" : "/avatar/diki.jpg",
   },
-};
+}));
 
-const round_2_person_2 = {
-  id: "round_2_person_2",
-  type: "bracket",
-  position: { x: 300, y: 40 },
-  sourcePosition: Position.Right,
-  targetPosition: Position.Left,
-  data: {
-    name: "Winner Group B",
-    role: "Round 2",
-    photo: "/avatar/diki.jpg",
-  },
-};
+// ============= Round 1 (45 persons - 15 groups x 3 persons each) =============
 
-const round_2_person_3 = {
-  id: "round_2_person_3",
-  type: "bracket",
-  position: { x: 300, y: -80 },
-  sourcePosition: Position.Right,
-  targetPosition: Position.Left,
-  data: {
-    name: "WildCard 1",
-    role: "Round 2",
-    photo: "/avatar/ilham.jpg",
-  },
-};
-
-// ============= Round 1 (45) =============
-const round_1_group_a_person_1 = {
-  id: "round_1_group_a_person_1",
-  type: "bracket",
-  position: { x: 0, y: -280 },
-  sourcePosition: Position.Right,
-  targetPosition: Position.Left,
-  data: {
-    name: "round_1_group_a_person_1",
-    role: "Round 1",
-    photo: "/avatar/ilham.jpg",
-  },
-};
-
-const round_1_group_a_person_2 = {
-  id: "round_1_group_a_person_2",
-  type: "bracket",
-  position: { x: 0, y: -200 },
-  sourcePosition: Position.Right,
-  targetPosition: Position.Left,
-  data: {
-    name: "round_1_group_a_person_2",
-    role: "Round 1",
-    photo: "/avatar/diki.jpg",
-  },
-};
-
-const round_1_group_a_person_3 = {
-  id: "round_1_group_a_person_3",
-  type: "bracket",
-  position: { x: 0, y: -120 },
-  sourcePosition: Position.Right,
-  targetPosition: Position.Left,
-  data: {
-    name: "round_1_group_a_person_3",
-    role: "Round 1",
-    photo: "/avatar/ilham.jpg",
-  },
-};
-
-const round_1_group_b_person_4 = {
-  id: "round_1_group_b_person_4",
-  type: "bracket",
-  position: { x: 0, y: -40 },
-  sourcePosition: Position.Right,
-  targetPosition: Position.Left,
-  data: {
-    name: "round_1_group_b_person_4",
-    role: "Round 1",
-    photo: "/avatar/diki.jpg",
-  },
-};
-
-const round_1_group_b_person_5 = {
-  id: "round_1_group_b_person_5",
-  type: "bracket",
-  position: { x: 0, y: 40 },
-  sourcePosition: Position.Right,
-  targetPosition: Position.Left,
-  data: {
-    name: "round_1_group_b_person_5",
-    role: "Round 1",
-    photo: "/avatar/ilham.jpg",
-  },
-};
-
-const round_1_group_b_person_6 = {
-  id: "round_1_group_b_person_6",
-  type: "bracket",
-  position: { x: 0, y: 120 },
-  sourcePosition: Position.Right,
-  targetPosition: Position.Left,
-  data: {
-    name: "round_1_group_b_person_6",
-    role: "Round 1",
-    photo: "/avatar/diki.jpg",
-  },
-};
-
-const round_1_group_c_person_7 = {
-  id: "round_1_group_c_person_7",
-  type: "bracket",
-  position: { x: 0, y: 200 },
-  sourcePosition: Position.Right,
-  targetPosition: Position.Left,
-  data: {
-    name: "round_1_group_c_person_7",
-    role: "Round 1",
-    photo: "/avatar/diki.jpg",
-  },
-};
-
-const round_1_group_c_person_8 = {
-  id: "round_1_group_c_person_8",
-  type: "bracket",
-  position: { x: 0, y: 280 },
-  sourcePosition: Position.Right,
-  targetPosition: Position.Left,
-  data: {
-    name: "round_1_group_c_person_8",
-    role: "Round 1",
-    photo: "/avatar/diki.jpg",
-  },
-};
-
-export const nodes = [
-  // Round 1 Group A
-  round_1_group_a_person_1,
-  round_1_group_a_person_2,
-  round_1_group_a_person_3,
-  // Round 1 Group B
-  round_1_group_b_person_4,
-  round_1_group_b_person_5,
-  round_1_group_b_person_6,
-
-  // Round 1 Group C
-  round_1_group_c_person_7,
-  round_1_group_c_person_8,
-
-  // Round 2
-  round_2_person_1,
-  round_2_person_2,
-  round_2_person_3,
+const groupLabels = [
+  "A",
+  "B",
+  "C",
+  "D",
+  "E",
+  "F",
+  "G",
+  "H",
+  "I",
+  "J",
+  "K",
+  "L",
+  "M",
+  "N",
+  "O",
 ];
 
-export const edges = [
-  // Round 1 Group A → Round 2 Person 1
-  {
-    id: "round_1_group_a_person_1_to_round_2_person_1",
-    source: "round_1_group_a_person_1",
-    target: "round_2_person_1",
+const round_1_nodes = groupLabels.flatMap((group, groupIndex) =>
+  Array.from({ length: 3 }, (_, personIndex) => ({
+    id: `round_1_group_${group.toLowerCase()}_person_${personIndex + 1}`,
+    type: "bracket",
+    position: { x: 0, y: getPersonY(groupIndex, personIndex) },
+    sourcePosition: Position.Right,
+    targetPosition: Position.Left,
+    data: {
+      name: `Person ${group}${personIndex + 1}`,
+      role: `Round 1 - Group ${group}`,
+      photo: personIndex % 2 === 0 ? "/avatar/ilham.jpg" : "/avatar/diki.jpg",
+    },
+  })),
+);
+
+// ============= Export Nodes ==============
+
+export const nodes = [...round_1_nodes, ...round_2_nodes];
+
+// ============= Edges (Round 1 → Round 2) ==============
+
+const round_1_to_round_2_edges = groupLabels.flatMap((group, groupIndex) =>
+  Array.from({ length: 3 }, (_, personIndex) => ({
+    id: `round_1_group_${group.toLowerCase()}_person_${personIndex + 1}_to_round_2_person_${groupIndex + 1}`,
+    source: `round_1_group_${group.toLowerCase()}_person_${personIndex + 1}`,
+    target: `round_2_person_${groupIndex + 1}`,
     type: "step",
     style: { stroke: "#64748b", strokeWidth: 2 },
-  },
-  {
-    id: "round_1_group_a_person_2_to_round_2_person_1",
-    source: "round_1_group_a_person_2",
-    target: "round_2_person_1",
-    type: "step",
-    style: { stroke: "#64748b", strokeWidth: 2 },
-  },
-  {
-    id: "round_1_group_a_person_3_to_round_2_person_1",
-    source: "round_1_group_a_person_3",
-    target: "round_2_person_1",
-    type: "step",
-    style: { stroke: "#64748b", strokeWidth: 2 },
-  },
-  // Round 1 Group B → Round 2 Person 2
-  {
-    id: "round_1_group_b_person_4_to_round_2_person_2",
-    source: "round_1_group_b_person_4",
-    target: "round_2_person_2",
-    type: "step",
-    style: { stroke: "#64748b", strokeWidth: 2 },
-  },
-  {
-    id: "round_1_group_b_person_5_to_round_2_person_2",
-    source: "round_1_group_b_person_5",
-    target: "round_2_person_2",
-    type: "step",
-    style: { stroke: "#64748b", strokeWidth: 2 },
-  },
-  {
-    id: "round_1_group_b_person_6_to_round_2_person_2",
-    source: "round_1_group_b_person_6",
-    target: "round_2_person_2",
-    type: "step",
-    style: { stroke: "#64748b", strokeWidth: 2 },
-  },
-];
+  })),
+);
+
+export const edges = [...round_1_to_round_2_edges];
