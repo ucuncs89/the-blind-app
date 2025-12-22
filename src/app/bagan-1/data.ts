@@ -18,7 +18,7 @@ const round_2_person_1 = {
 const round_2_person_2 = {
   id: "round_2_person_2",
   type: "bracket",
-  position: { x: 300, y: 0 },
+  position: { x: 300, y: 40 },
   sourcePosition: Position.Right,
   targetPosition: Position.Left,
   data: {
@@ -31,7 +31,7 @@ const round_2_person_2 = {
 const round_2_person_3 = {
   id: "round_2_person_3",
   type: "bracket",
-  position: { x: 300, y: 200 },
+  position: { x: 300, y: -80 },
   sourcePosition: Position.Right,
   targetPosition: Position.Left,
   data: {
@@ -120,6 +120,32 @@ const round_1_group_b_person_6 = {
   },
 };
 
+const round_1_group_c_person_7 = {
+  id: "round_1_group_c_person_7",
+  type: "bracket",
+  position: { x: 0, y: 200 },
+  sourcePosition: Position.Right,
+  targetPosition: Position.Left,
+  data: {
+    name: "round_1_group_c_person_7",
+    role: "Round 1",
+    photo: "/avatar/diki.jpg",
+  },
+};
+
+const round_1_group_c_person_8 = {
+  id: "round_1_group_c_person_8",
+  type: "bracket",
+  position: { x: 0, y: 280 },
+  sourcePosition: Position.Right,
+  targetPosition: Position.Left,
+  data: {
+    name: "round_1_group_c_person_8",
+    role: "Round 1",
+    photo: "/avatar/diki.jpg",
+  },
+};
+
 export const nodes = [
   // Round 1 Group A
   round_1_group_a_person_1,
@@ -129,6 +155,10 @@ export const nodes = [
   round_1_group_b_person_4,
   round_1_group_b_person_5,
   round_1_group_b_person_6,
+
+  // Round 1 Group C
+  round_1_group_c_person_7,
+  round_1_group_c_person_8,
 
   // Round 2
   round_2_person_1,
