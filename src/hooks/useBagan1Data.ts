@@ -21,6 +21,10 @@ const getPersonY = (groupIndex: number, personIndex: number): number =>
 const getRound2Y = (groupIndex: number): number => 
   getGroupStartY(groupIndex) + PERSON_GAP;
 
+// Calculate wildcard Y position (between two groups)
+const getWildcardY = (groupIndex1: number, groupIndex2: number): number => 
+  (getRound2Y(groupIndex1) + getRound2Y(groupIndex2)) / 2;
+
 type UseBagan1DataResult = {
   nodes: Node[];
   edges: Edge[];
@@ -81,6 +85,35 @@ export const useBagan1Data = (): UseBagan1DataResult => {
       };
     });
 
+    // Generate 9 Wildcard nodes (distributed between groups)
+    // Wildcard placement: between consecutive group pairs
+    const wildcardConfigs = [
+      { id: 1, between: [0, 1] },   // between A and B
+      { id: 2, between: [1, 2] },   // between B and C
+      { id: 3, between: [2, 3] },   // between C and D
+      { id: 4, between: [3, 4] },   // between D and E
+      { id: 5, between: [4, 5] },   // between E and F
+      { id: 6, between: [5, 6] },   // between F and G
+      { id: 7, between: [6, 7] },   // between G and H
+      { id: 8, between: [7, 8] },   // between H and I
+      { id: 9, between: [8, 9] },   // between I and J
+    ];
+
+    const wildcardNodes: Node[] = wildcardConfigs.map((config) => ({
+      id: `round_2_wildcard_${config.id}`,
+      type: 'bracket',
+      position: { x: ROUND_2_X, y: getWildcardY(config.between[0], config.between[1]) },
+      sourcePosition: Position.Right,
+      targetPosition: Position.Left,
+      data: {
+        name: `Wildcard ${config.id}`,
+        role: 'Round 2 - Wildcard',
+        photo: '',
+        isPlaceholder: true,
+        isWildcard: true,
+      },
+    }));
+
     // Generate edges from Round 1 to Round 2
     const round1ToRound2Edges: Edge[] = GROUP_LABELS.flatMap((group, groupIndex) => {
       const groupPeserta = pesertaByGroup[group] || [];
@@ -95,7 +128,7 @@ export const useBagan1Data = (): UseBagan1DataResult => {
     });
 
     return {
-      nodes: [...round1Nodes, ...round2Nodes],
+      nodes: [...round1Nodes, ...round2Nodes, ...wildcardNodes],
       edges: round1ToRound2Edges,
     };
   }, [peserta]);
