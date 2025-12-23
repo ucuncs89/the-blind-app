@@ -189,7 +189,7 @@ const ViewQFFinalPage = (): React.ReactElement => {
                     onInit={(instance) => {
                         reactFlowInstance.current = instance;
                     }}
-                    onNodesChange={onNodesChange}
+                    // onNodesChange={onNodesChange}
                     onNodeClick={handleNodeClick}
                 >
                     <Background />
