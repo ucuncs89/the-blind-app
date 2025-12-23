@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { Position, type Node, type Edge } from "reactflow";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db, type NodeAssignmentRecord } from "@/lib/db";
+import { type NodeAssignmentRecord } from "@/lib/db";
 import type { Peserta } from "@/types/peserta";
+import { getAllPeserta } from "@/lib/pesertaAPI";
+import { getNodeAssignments } from "@/lib/nodeAssignmentAPI";
+import { usePesertaDB } from "./usePesertaDB";
 
 // Spacing configuration
 const PERSON_GAP = 120;
@@ -114,10 +116,25 @@ type UseBagan1DataResult = {
 };
 
 export const useBagan1Data = (): UseBagan1DataResult => {
-    const peserta = useLiveQuery(() => db.peserta.toArray(), [], []);
+    const { peserta } = usePesertaDB();
+    const [nodeAssignments, setNodeAssignments] = useState<NodeAssignmentRecord[]>([]);
+    const [isLoadingAssignments, setIsLoadingAssignments] = useState(true);
 
     // Fetch node assignments for bagan-1
-    const nodeAssignments = useLiveQuery(() => db.nodeAssignments.where("baganId").equals(BAGAN_ID).toArray(), [], []);
+    useEffect(() => {
+        const fetchAssignments = async (): Promise<void> => {
+            try {
+                setIsLoadingAssignments(true);
+                const data = await getNodeAssignments(BAGAN_ID);
+                setNodeAssignments(data);
+            } catch (err) {
+                console.error("Failed to fetch assignments:", err);
+            } finally {
+                setIsLoadingAssignments(false);
+            }
+        };
+        fetchAssignments();
+    }, []);
 
     // Create a map of nodeId -> assignment for quick lookup
     const assignmentsMap = useMemo(() => {
@@ -472,7 +489,7 @@ export const useBagan1Data = (): UseBagan1DataResult => {
     return {
         nodes,
         edges,
-        isLoading: peserta === undefined,
+        isLoading: peserta === undefined || isLoadingAssignments,
         assignments: assignmentsMap,
     };
 };
