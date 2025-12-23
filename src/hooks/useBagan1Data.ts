@@ -10,6 +10,7 @@ import type { Peserta } from '@/types/peserta';
 const PERSON_GAP = 120;
 const GROUP_GAP = 450;
 const ROUND_2_X = 400;
+const QUARTER_FINAL_X = 800;
 const BAGAN_ID = 'bagan-1';
 
 const GROUP_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'];
@@ -25,6 +26,43 @@ const getRound2Y = (groupIndex: number): number =>
 // Calculate wildcard Y position (between two groups)
 const getWildcardY = (groupIndex1: number, groupIndex2: number): number => 
   (getRound2Y(groupIndex1) + getRound2Y(groupIndex2)) / 2;
+
+// Quarter Final battle configuration
+// Each QF slot has participants from Round 2 (2 group winners + wildcards) - Battle of 3
+const QUARTER_FINAL_BATTLES = [
+  { id: 1, groupWinners: [1, 2], wildcards: [1] },   // A, B, W1 → QF1
+  { id: 2, groupWinners: [3, 4], wildcards: [2] },   // C, D, W2 → QF2
+  { id: 3, groupWinners: [5, 6], wildcards: [3] },   // E, F, W3 → QF3
+  { id: 4, groupWinners: [7, 8], wildcards: [4] },   // G, H, W4 → QF4
+  { id: 5, groupWinners: [9, 10], wildcards: [5] },  // I, J, W5 → QF5
+  { id: 6, groupWinners: [11, 12], wildcards: [6] }, // K, L, W6 → QF6
+  { id: 7, groupWinners: [13, 14], wildcards: [7] }, // M, N, W7 → QF7
+  { id: 8, groupWinners: [15], wildcards: [8, 9] },  // O, W8, W9 → QF8
+];
+
+// Wildcard Y offset for when multiple wildcards are in same position
+const WILDCARD_Y_OFFSET = 80;
+
+// Calculate QF Y position (center of the battle participants)
+const getQuarterFinalY = (battleIndex: number): number => {
+  const battle = QUARTER_FINAL_BATTLES[battleIndex];
+  const groupIndices = battle.groupWinners.map((gw) => gw - 1);
+  const groupYPositions = groupIndices.map((gi) => getRound2Y(gi));
+  
+  // Calculate wildcard positions
+  const wildcardYPositions = battle.wildcards.map((_, idx) => {
+    const baseY = getWildcardY(
+      groupIndices[0],
+      groupIndices.length > 1 ? groupIndices[1] : groupIndices[0] + 1
+    );
+    // Offset each additional wildcard
+    return baseY + (idx * WILDCARD_Y_OFFSET);
+  });
+  
+  const allYPositions = [...groupYPositions, ...wildcardYPositions];
+  const avgY = allYPositions.reduce((a, b) => a + b, 0) / allYPositions.length;
+  return avgY;
+};
 
 type UseBagan1DataResult = {
   nodes: Node[];
@@ -130,9 +168,10 @@ export const useBagan1Data = (): UseBagan1DataResult => {
       { id: 3, between: [4, 5] },   // between E and F
       { id: 4, between: [6, 7] },   // between G and H
       { id: 5, between: [8, 9] },   // between I and J
-      { id: 6, between: [10, 11] },   // between K and L
-      { id: 7, between: [12, 13] },   // between M and N
-      { id: 8, between: [14, 15] },   // between O and P
+      { id: 6, between: [10, 11] }, // between K and L
+      { id: 7, between: [12, 13] }, // between M and N
+      { id: 8, between: [14, 15] }, // untuk battle dengan O
+      { id: 9, between: [14, 15] }, // Wildcard 9 untuk QF8 (offset sedikit)
     ];
 
     const wildcardNodes: Node[] = wildcardConfigs.map((config) => {
@@ -140,10 +179,16 @@ export const useBagan1Data = (): UseBagan1DataResult => {
       const assignment = assignmentsMap.get(nodeId);
       const assignedPeserta = assignment ? pesertaMap.get(assignment.pesertaId) : null;
 
+      // Offset wildcard 9 so it doesn't overlap with wildcard 8
+      const yOffset = config.id === 9 ? WILDCARD_Y_OFFSET : 0;
+
       return {
         id: nodeId,
         type: 'bracket',
-        position: { x: ROUND_2_X, y: getWildcardY(config.between[0], config.between[1]) },
+        position: { 
+          x: ROUND_2_X, 
+          y: getWildcardY(config.between[0], config.between[1]) + yOffset 
+        },
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
         data: {
@@ -153,6 +198,34 @@ export const useBagan1Data = (): UseBagan1DataResult => {
           pesertaId: assignedPeserta?.id || '',
           isPlaceholder: !assignedPeserta,
           isWildcard: true,
+        },
+      };
+    });
+
+    // Generate Quarter Final nodes (8 besar)
+    const quarterFinalNodes: Node[] = QUARTER_FINAL_BATTLES.map((battle, index) => {
+      const nodeId = `quarter_final_${battle.id}`;
+      const assignment = assignmentsMap.get(nodeId);
+      const assignedPeserta = assignment ? pesertaMap.get(assignment.pesertaId) : null;
+
+      // Get group labels for display
+      const groupLabels = battle.groupWinners.map((gw) => GROUP_LABELS[gw - 1]).join(', ');
+      const wildcardLabels = battle.wildcards.map((w) => `W${w}`).join(', ');
+      const battleLabel = `Battle: ${groupLabels}, ${wildcardLabels}`;
+
+      return {
+        id: nodeId,
+        type: 'bracket',
+        position: { x: QUARTER_FINAL_X, y: getQuarterFinalY(index) },
+        sourcePosition: Position.Right,
+        targetPosition: Position.Left,
+        data: {
+          name: assignedPeserta ? assignedPeserta.name : `QF ${battle.id}`,
+          role: `Quarter Final - ${battleLabel}`,
+          photo: assignedPeserta?.photo || '',
+          pesertaId: assignedPeserta?.id || '',
+          isPlaceholder: !assignedPeserta,
+          isQuarterFinal: true,
         },
       };
     });
@@ -170,9 +243,39 @@ export const useBagan1Data = (): UseBagan1DataResult => {
       }));
     });
 
+    // Generate edges from Round 2 to Quarter Final (Battle of 3)
+    const round2ToQuarterFinalEdges: Edge[] = QUARTER_FINAL_BATTLES.flatMap((battle) => {
+      const battleEdges: Edge[] = [];
+      const targetId = `quarter_final_${battle.id}`;
+
+      // Add edges from group winners
+      battle.groupWinners.forEach((gw) => {
+        battleEdges.push({
+          id: `round_2_person_${gw}_to_qf_${battle.id}`,
+          source: `round_2_person_${gw}`,
+          target: targetId,
+          type: 'step',
+          style: { stroke: '#8b5cf6', strokeWidth: 2 },
+        });
+      });
+
+      // Add edges from wildcards
+      battle.wildcards.forEach((wc) => {
+        battleEdges.push({
+          id: `round_2_wildcard_${wc}_to_qf_${battle.id}`,
+          source: `round_2_wildcard_${wc}`,
+          target: targetId,
+          type: 'step',
+          style: { stroke: '#8b5cf6', strokeWidth: 2, strokeDasharray: '5,5' },
+        });
+      });
+
+      return battleEdges;
+    });
+
     return {
-      nodes: [...round1Nodes, ...round2Nodes, ...wildcardNodes],
-      edges: round1ToRound2Edges,
+      nodes: [...round1Nodes, ...round2Nodes, ...wildcardNodes, ...quarterFinalNodes],
+      edges: [...round1ToRound2Edges, ...round2ToQuarterFinalEdges],
     };
   }, [peserta, assignmentsMap, pesertaMap]);
 
