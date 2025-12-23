@@ -1,20 +1,29 @@
 'use client';
 
-import React, { useRef, useState, useCallback, useMemo } from 'react';
+import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import ReactFlow, {
   Background,
   applyNodeChanges,
   type NodeChange,
   type Node,
+  type ReactFlowInstance,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { nodeTypes, edgeTypes } from '@/components/flow/nodeTypes';
-import { nodes as initialNodes, edges } from '@/app/bagan-1/data';
+import { useBagan1Data } from '@/hooks/useBagan1Data';
 
 const Bagan1Page = (): React.ReactElement => {
-  const reactFlowInstance = useRef<ReturnType<typeof ReactFlow> | null>(null);
-  const [nodes, setNodes] = useState<Node[]>(initialNodes as Node[]);
+  const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
+  const { nodes: initialNodes, edges, isLoading } = useBagan1Data();
+  const [nodes, setNodes] = useState<Node[]>([]);
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
+
+  // Sync nodes when data from IndexedDB changes
+  useEffect(() => {
+    if (initialNodes.length > 0) {
+      setNodes(initialNodes);
+    }
+  }, [initialNodes]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes((nds) => applyNodeChanges(changes, nds));
@@ -85,6 +94,30 @@ const Bagan1Page = (): React.ReactElement => {
     }));
   }, [nodes, selectedNodeIds]);
 
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-violet-200 border-t-violet-500" />
+          <p className="text-muted-foreground">Memuat data bagan...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (nodes.length === 0) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-4">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-muted-foreground">Belum ada data peserta</h2>
+          <p className="text-sm text-muted-foreground">
+            Silakan tambahkan peserta terlebih dahulu di halaman Kelola Peserta
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
@@ -108,7 +141,7 @@ const Bagan1Page = (): React.ReactElement => {
           edgeTypes={edgeTypes}
           fitView
           onInit={(instance) => {
-            (reactFlowInstance as unknown as React.MutableRefObject<typeof instance>).current = instance;
+            reactFlowInstance.current = instance;
           }}
           onNodesChange={onNodesChange}
           onNodeClick={handleNodeClick}
@@ -121,4 +154,3 @@ const Bagan1Page = (): React.ReactElement => {
 };
 
 export default Bagan1Page;
-
