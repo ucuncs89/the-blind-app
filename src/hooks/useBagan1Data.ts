@@ -40,8 +40,21 @@ const QUARTER_FINAL_BATTLES = [
   { id: 8, groupWinners: [15], wildcards: [8, 9] },  // O, W8, W9 → QF8
 ];
 
-// Wildcard Y offset for when multiple wildcards are in same position
-const WILDCARD_Y_OFFSET = 80;
+// Wildcard position configs for QF Y calculation
+const getWildcardYForQF = (wildcardId: number, groupIndices: number[]): number => {
+  // For wildcards 8 and 9 (QF8), use positions relative to group O
+  if (wildcardId === 8) {
+    return getRound2Y(14) - PERSON_GAP; // above O
+  }
+  if (wildcardId === 9) {
+    return getRound2Y(14) + PERSON_GAP; // below O
+  }
+  // For other wildcards, calculate between two groups
+  return getWildcardY(
+    groupIndices[0],
+    groupIndices.length > 1 ? groupIndices[1] : groupIndices[0] + 1
+  );
+};
 
 // Calculate QF Y position (center of the battle participants)
 const getQuarterFinalY = (battleIndex: number): number => {
@@ -50,14 +63,9 @@ const getQuarterFinalY = (battleIndex: number): number => {
   const groupYPositions = groupIndices.map((gi) => getRound2Y(gi));
   
   // Calculate wildcard positions
-  const wildcardYPositions = battle.wildcards.map((_, idx) => {
-    const baseY = getWildcardY(
-      groupIndices[0],
-      groupIndices.length > 1 ? groupIndices[1] : groupIndices[0] + 1
-    );
-    // Offset each additional wildcard
-    return baseY + (idx * WILDCARD_Y_OFFSET);
-  });
+  const wildcardYPositions = battle.wildcards.map((wcId) => 
+    getWildcardYForQF(wcId, groupIndices)
+  );
   
   const allYPositions = [...groupYPositions, ...wildcardYPositions];
   const avgY = allYPositions.reduce((a, b) => a + b, 0) / allYPositions.length;
@@ -161,17 +169,18 @@ export const useBagan1Data = (): UseBagan1DataResult => {
     });
 
     // Generate 9 Wildcard nodes (distributed between groups)
-    // Wildcard placement: between consecutive group pairs
-    const wildcardConfigs = [
-      { id: 1, between: [0, 1] },   // between A and B
-      { id: 2, between: [2, 3] },   // between C and D
-      { id: 3, between: [4, 5] },   // between E and F
-      { id: 4, between: [6, 7] },   // between G and H
-      { id: 5, between: [8, 9] },   // between I and J
-      { id: 6, between: [10, 11] }, // between K and L
-      { id: 7, between: [12, 13] }, // between M and N
-      { id: 8, between: [14, 15] }, // untuk battle dengan O
-      { id: 9, between: [14, 15] }, // Wildcard 9 untuk QF8 (offset sedikit)
+    // Wildcard placement: between consecutive group pairs, or relative to group O for QF8
+    const wildcardConfigs: Array<{ id: number; yPosition: number }> = [
+      { id: 1, yPosition: getWildcardY(0, 1) },   // between A and B
+      { id: 2, yPosition: getWildcardY(2, 3) },   // between C and D
+      { id: 3, yPosition: getWildcardY(4, 5) },   // between E and F
+      { id: 4, yPosition: getWildcardY(6, 7) },   // between G and H
+      { id: 5, yPosition: getWildcardY(8, 9) },   // between I and J
+      { id: 6, yPosition: getWildcardY(10, 11) }, // between K and L
+      { id: 7, yPosition: getWildcardY(12, 13) }, // between M and N
+      // W8 dan W9 diposisikan di atas dan bawah grup O untuk QF8
+      { id: 8, yPosition: getRound2Y(14) - PERSON_GAP }, // di atas O
+      { id: 9, yPosition: getRound2Y(14) + PERSON_GAP }, // di bawah O
     ];
 
     const wildcardNodes: Node[] = wildcardConfigs.map((config) => {
@@ -179,15 +188,12 @@ export const useBagan1Data = (): UseBagan1DataResult => {
       const assignment = assignmentsMap.get(nodeId);
       const assignedPeserta = assignment ? pesertaMap.get(assignment.pesertaId) : null;
 
-      // Offset wildcard 9 so it doesn't overlap with wildcard 8
-      const yOffset = config.id === 9 ? WILDCARD_Y_OFFSET : 0;
-
       return {
         id: nodeId,
         type: 'bracket',
         position: { 
           x: ROUND_2_X, 
-          y: getWildcardY(config.between[0], config.between[1]) + yOffset 
+          y: config.yPosition,
         },
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
