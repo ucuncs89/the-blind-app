@@ -97,6 +97,11 @@ export const useBagan1Data = (): UseBagan1DataResult => {
       { id: 7, between: [6, 7] },   // between G and H
       { id: 8, between: [7, 8] },   // between H and I
       { id: 9, between: [8, 9] },   // between I and J
+      { id: 10, between: [9, 10] },   // between J and K
+      { id: 11, between: [10, 11] },   // between K and L
+      { id: 12, between: [11, 12] },   // between L and M
+      { id: 13, between: [12, 13] },   // between M and N
+      { id: 14, between: [13, 14] },   // between N and O
     ];
 
     const wildcardNodes: Node[] = wildcardConfigs.map((config) => ({
