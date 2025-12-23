@@ -54,7 +54,7 @@ const Bagan1Page = (): React.ReactElement => {
         (nodeId: string): string[] => {
             const relatedIds: string[] = [nodeId];
 
-            // Quarter Final battle configurations
+            // Battle configurations
             const quarterFinalBattles = [
                 { id: 1, groupWinners: [1, 2], wildcards: [1] },
                 { id: 2, groupWinners: [3, 4], wildcards: [2] },
@@ -66,7 +66,62 @@ const Bagan1Page = (): React.ReactElement => {
                 { id: 8, groupWinners: [15], wildcards: [8, 9] },
             ];
 
-            // Handle Quarter Final node click - highlight all battle participants
+            const semiFinalBattles = [
+                { id: 1, quarterFinals: [1, 2] },
+                { id: 2, quarterFinals: [3, 4] },
+                { id: 3, quarterFinals: [5, 6] },
+                { id: 4, quarterFinals: [7, 8] },
+            ];
+
+            const finalBattles = [
+                { id: 1, semiFinals: [1, 2] },
+                { id: 2, semiFinals: [3, 4] },
+            ];
+
+            // Handle Champion click - highlight finals
+            if (nodeId === "champion") {
+                relatedIds.push("final_1", "final_2");
+            }
+
+            // Handle 3rd Place click - highlight contestants
+            if (nodeId === "third_place") {
+                relatedIds.push("third_place_contestant_1", "third_place_contestant_2");
+            }
+
+            // Handle 3rd Place Contestant click - highlight other contestant and 3rd place
+            if (nodeId.startsWith("third_place_contestant_")) {
+                relatedIds.push("third_place_contestant_1", "third_place_contestant_2", "third_place");
+            }
+
+            // Handle Final node click - highlight semi finals and champion
+            if (nodeId.startsWith("final_") && !nodeId.startsWith("final_to")) {
+                const finalNumber = parseInt(nodeId.replace("final_", ""));
+                const battle = finalBattles.find((b) => b.id === finalNumber);
+                if (battle) {
+                    battle.semiFinals.forEach((sf) => {
+                        relatedIds.push(`semi_final_${sf}`);
+                    });
+                }
+                relatedIds.push("champion");
+            }
+
+            // Handle Semi Final node click - highlight quarter finals and final
+            if (nodeId.startsWith("semi_final_")) {
+                const sfNumber = parseInt(nodeId.replace("semi_final_", ""));
+                const sfBattle = semiFinalBattles.find((b) => b.id === sfNumber);
+                if (sfBattle) {
+                    sfBattle.quarterFinals.forEach((qf) => {
+                        relatedIds.push(`quarter_final_${qf}`);
+                    });
+                }
+                // Find which final this SF leads to
+                const finalBattle = finalBattles.find((b) => b.semiFinals.includes(sfNumber));
+                if (finalBattle) {
+                    relatedIds.push(`final_${finalBattle.id}`);
+                }
+            }
+
+            // Handle Quarter Final node click - highlight round 2 participants and semi final
             if (nodeId.startsWith("quarter_final_")) {
                 const qfNumber = parseInt(nodeId.replace("quarter_final_", ""));
                 const battle = quarterFinalBattles.find((b) => b.id === qfNumber);
@@ -77,6 +132,11 @@ const Bagan1Page = (): React.ReactElement => {
                     battle.wildcards.forEach((wc) => {
                         relatedIds.push(`round_2_wildcard_${wc}`);
                     });
+                }
+                // Find which semi final this QF leads to
+                const sfBattle = semiFinalBattles.find((b) => b.quarterFinals.includes(qfNumber));
+                if (sfBattle) {
+                    relatedIds.push(`semi_final_${sfBattle.id}`);
                 }
             }
 
@@ -154,11 +214,12 @@ const Bagan1Page = (): React.ReactElement => {
         (event: React.MouseEvent, node: Node) => {
             event.preventDefault();
 
-            // Show context menu for Round 2 nodes (winner and wildcard) and Quarter Final nodes
-            const isRound2Node = node.id.startsWith("round_2_");
-            const isQuarterFinalNode = node.id.startsWith("quarter_final_");
+            // Show context menu for assignable nodes (Round 2+)
+            const assignableNodePrefixes = ["round_2_", "quarter_final_", "semi_final_", "final_", "champion", "third_place"];
 
-            if (!isRound2Node && !isQuarterFinalNode) return;
+            const isAssignable = assignableNodePrefixes.some((prefix) => node.id.startsWith(prefix) || node.id === prefix);
+
+            if (!isAssignable) return;
 
             const assignment = assignments.get(node.id);
 
@@ -228,22 +289,34 @@ const Bagan1Page = (): React.ReactElement => {
                 <h1 className="text-2xl font-bold tracking-tight">
                     <span className="bg-gradient-to-r from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">Bagan 1</span>
                 </h1>
-                <p className="text-sm text-muted-foreground">Visualisasi bracket tournament Round 1 → Round 2 → Quarter Final (8 Besar)</p>
+                <p className="text-sm text-muted-foreground">Round 1 → Round 2 → Quarter Final → Semi Final → Final → Champion</p>
             </div>
 
             {/* Legend */}
-            <div className="flex gap-6 border-b bg-muted/30 px-4 py-2 text-sm">
-                <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full bg-slate-500" />
-                    <span className="text-muted-foreground">Round 1 → 2</span>
+            <div className="flex flex-wrap gap-4 border-b bg-muted/30 px-4 py-2 text-xs">
+                <div className="flex items-center gap-1.5">
+                    <div className="h-2.5 w-2.5 rounded-full bg-slate-500" />
+                    <span className="text-muted-foreground">R1→R2</span>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full bg-violet-500" />
-                    <span className="text-muted-foreground">Round 2 → QF (Battle of 3)</span>
+                <div className="flex items-center gap-1.5">
+                    <div className="h-2.5 w-2.5 rounded-full bg-violet-500" />
+                    <span className="text-muted-foreground">R2→QF</span>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="h-0.5 w-6 border-t-2 border-dashed border-violet-500" />
-                    <span className="text-muted-foreground">Wildcard</span>
+                <div className="flex items-center gap-1.5">
+                    <div className="h-2.5 w-2.5 rounded-full bg-cyan-500" />
+                    <span className="text-muted-foreground">QF→SF</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                    <span className="text-muted-foreground">SF→Final</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                    <span className="text-muted-foreground">Final→Champion</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <div className="h-2.5 w-2.5 rounded-full bg-orange-500" />
+                    <span className="text-muted-foreground">3rd Place</span>
                 </div>
             </div>
 
