@@ -9,14 +9,41 @@ import ReactFlow, {
   type ReactFlowInstance,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { UserPlus, X } from 'lucide-react';
 import { nodeTypes, edgeTypes } from '@/components/flow/nodeTypes';
 import { useBagan1Data } from '@/hooks/useBagan1Data';
+import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from '@/components/ui/context-menu';
+import { AssignPesertaModal } from '@/components/bagan/AssignPesertaModal';
+
+type ContextMenuState = {
+  open: boolean;
+  position: { x: number; y: number };
+  nodeId: string;
+  nodeName: string;
+  currentPesertaId?: string;
+};
 
 const Bagan1Page = (): React.ReactElement => {
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
-  const { nodes: initialNodes, edges, isLoading } = useBagan1Data();
+  const { nodes: initialNodes, edges, isLoading, assignments } = useBagan1Data();
   const [nodes, setNodes] = useState<Node[]>([]);
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
+  
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    open: false,
+    position: { x: 0, y: 0 },
+    nodeId: '',
+    nodeName: '',
+  });
+
+  // Assign modal state
+  const [assignModal, setAssignModal] = useState({
+    open: false,
+    nodeId: '',
+    nodeName: '',
+    currentPesertaId: '',
+  });
 
   // Sync nodes when data from IndexedDB changes
   useEffect(() => {
@@ -84,6 +111,43 @@ const Bagan1Page = (): React.ReactElement => {
     [getRelatedNodeIds]
   );
 
+  // Handle right-click on node to show context menu
+  const handleNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      event.preventDefault();
+      
+      // Only show context menu for Round 2 nodes (winner and wildcard)
+      if (!node.id.startsWith('round_2_')) return;
+
+      const assignment = assignments.get(node.id);
+      
+      setContextMenu({
+        open: true,
+        position: { x: event.clientX, y: event.clientY },
+        nodeId: node.id,
+        nodeName: node.data.name,
+        currentPesertaId: assignment?.pesertaId || node.data.pesertaId,
+      });
+    },
+    [assignments]
+  );
+
+  // Close context menu
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenu((prev) => ({ ...prev, open: false }));
+  }, []);
+
+  // Open assign modal from context menu
+  const handleOpenAssignModal = useCallback(() => {
+    setAssignModal({
+      open: true,
+      nodeId: contextMenu.nodeId,
+      nodeName: contextMenu.nodeName,
+      currentPesertaId: contextMenu.currentPesertaId || '',
+    });
+    handleCloseContextMenu();
+  }, [contextMenu, handleCloseContextMenu]);
+
   const nodesWithSelection = useMemo(() => {
     return nodes.map((node) => ({
       ...node,
@@ -145,10 +209,56 @@ const Bagan1Page = (): React.ReactElement => {
           }}
           onNodesChange={onNodesChange}
           onNodeClick={handleNodeClick}
+          onNodeContextMenu={handleNodeContextMenu}
         >
           <Background />
         </ReactFlow>
       </div>
+
+      {/* Context Menu */}
+      <ContextMenu
+        open={contextMenu.open}
+        position={contextMenu.position}
+        onClose={handleCloseContextMenu}
+      >
+        <ContextMenuItem
+          icon={<UserPlus className="h-4 w-4" />}
+          onClick={handleOpenAssignModal}
+        >
+          {contextMenu.currentPesertaId ? 'Edit Assignment' : 'Assign Peserta'}
+        </ContextMenuItem>
+        {contextMenu.currentPesertaId && (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              icon={<X className="h-4 w-4" />}
+              className="text-destructive hover:text-destructive"
+              onClick={() => {
+                // Clear assignment will be handled in modal
+                setAssignModal({
+                  open: true,
+                  nodeId: contextMenu.nodeId,
+                  nodeName: contextMenu.nodeName,
+                  currentPesertaId: contextMenu.currentPesertaId || '',
+                });
+                handleCloseContextMenu();
+              }}
+            >
+              Hapus Assignment
+            </ContextMenuItem>
+          </>
+        )}
+      </ContextMenu>
+
+      {/* Assign Peserta Modal */}
+      <AssignPesertaModal
+        open={assignModal.open}
+        onOpenChange={(open) => setAssignModal((prev) => ({ ...prev, open }))}
+        nodeId={assignModal.nodeId}
+        nodeName={assignModal.nodeName}
+        baganId="bagan-1"
+        currentPesertaId={assignModal.currentPesertaId}
+      />
     </div>
   );
 };
