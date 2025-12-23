@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { Plus, Pencil, Trash2, Search, UserCircle } from 'lucide-react';
+import { useState, useCallback, useRef } from 'react';
+import Image from 'next/image';
+import { Plus, Pencil, Trash2, Search, UserCircle, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,20 +25,13 @@ import {
 } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Peserta, PesertaFormData } from '@/types/peserta';
-
-const INITIAL_PESERTA: Peserta[] = [
-  { id: '1', name: 'Ilham Firdaus', group: 'A', photo: '/avatar/ilham.jpg', status: 'active', createdAt: new Date() },
-  { id: '2', name: 'Diki Pratama', group: 'A', photo: '/avatar/diki.jpg', status: 'active', createdAt: new Date() },
-  { id: '3', name: 'Ahmad Rizki', group: 'A', photo: '/avatar/ilham.jpg', status: 'active', createdAt: new Date() },
-  { id: '4', name: 'Budi Santoso', group: 'B', photo: '/avatar/diki.jpg', status: 'active', createdAt: new Date() },
-  { id: '5', name: 'Citra Dewi', group: 'B', photo: '/avatar/ilham.jpg', status: 'active', createdAt: new Date() },
-  { id: '6', name: 'Diana Putri', group: 'B', photo: '/avatar/diki.jpg', status: 'active', createdAt: new Date() },
-];
+import { usePesertaDB } from '@/hooks/usePesertaDB';
+import { fileToBase64 } from '@/lib/pesertaDB';
 
 const GROUPS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'];
 
 const PesertaPage = (): React.ReactElement => {
-  const [peserta, setPeserta] = useState<Peserta[]>(INITIAL_PESERTA);
+  const { peserta, isLoading, addPeserta, updatePeserta, deletePeserta } = usePesertaDB();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -46,9 +40,11 @@ const PesertaPage = (): React.ReactElement => {
   const [formData, setFormData] = useState<PesertaFormData>({
     name: '',
     group: 'A',
-    photo: '/avatar/ilham.jpg',
+    photo: '',
     status: 'active',
   });
+  const [photoPreview, setPhotoPreview] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredPeserta = peserta.filter((p) =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -59,44 +55,55 @@ const PesertaPage = (): React.ReactElement => {
     setFormData({
       name: '',
       group: 'A',
-      photo: '/avatar/ilham.jpg',
+      photo: '',
       status: 'active',
     });
+    setPhotoPreview('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   }, []);
 
-  const handleAdd = useCallback((): void => {
-    const newPeserta: Peserta = {
-      id: Date.now().toString(),
-      ...formData,
-      createdAt: new Date(),
-    };
-    setPeserta((prev) => [...prev, newPeserta]);
+  const handlePhotoChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = e.target.files?.[0];
+
+    if (file) {
+      const base64 = await fileToBase64(file);
+      setFormData((prev) => ({ ...prev, photo: base64 }));
+      setPhotoPreview(base64);
+    }
+  }, []);
+
+  const handleRemovePhoto = useCallback((): void => {
+    setFormData((prev) => ({ ...prev, photo: '' }));
+    setPhotoPreview('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
+
+  const handleAdd = useCallback(async (): Promise<void> => {
+    await addPeserta(formData);
     setIsAddDialogOpen(false);
     resetForm();
-  }, [formData, resetForm]);
+  }, [formData, addPeserta, resetForm]);
 
-  const handleEdit = useCallback((): void => {
+  const handleEdit = useCallback(async (): Promise<void> => {
     if (!selectedPeserta) return;
-    
-    setPeserta((prev) =>
-      prev.map((p) =>
-        p.id === selectedPeserta.id
-          ? { ...p, ...formData }
-          : p
-      )
-    );
+
+    await updatePeserta(selectedPeserta.id, formData);
     setIsEditDialogOpen(false);
     setSelectedPeserta(null);
     resetForm();
-  }, [selectedPeserta, formData, resetForm]);
+  }, [selectedPeserta, formData, updatePeserta, resetForm]);
 
-  const handleDelete = useCallback((): void => {
+  const handleDelete = useCallback(async (): Promise<void> => {
     if (!selectedPeserta) return;
-    
-    setPeserta((prev) => prev.filter((p) => p.id !== selectedPeserta.id));
+
+    await deletePeserta(selectedPeserta.id);
     setIsDeleteDialogOpen(false);
     setSelectedPeserta(null);
-  }, [selectedPeserta]);
+  }, [selectedPeserta, deletePeserta]);
 
   const openEditDialog = useCallback((p: Peserta): void => {
     setSelectedPeserta(p);
@@ -106,6 +113,7 @@ const PesertaPage = (): React.ReactElement => {
       photo: p.photo,
       status: p.status,
     });
+    setPhotoPreview(p.photo);
     setIsEditDialogOpen(true);
   }, []);
 
@@ -134,6 +142,72 @@ const PesertaPage = (): React.ReactElement => {
     );
   };
 
+  const PhotoUploadField = (): React.ReactElement => (
+    <div className="grid gap-2">
+      <Label>Foto</Label>
+      <div className="flex items-center gap-4">
+        {photoPreview ? (
+          <div className="relative">
+            <div className="h-20 w-20 overflow-hidden rounded-full border-2 border-violet-200">
+              <Image
+                src={photoPreview}
+                alt="Preview"
+                width={80}
+                height={80}
+                className="h-full w-full object-cover"
+                unoptimized
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleRemovePhoto}
+              className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-dashed border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
+            <UserCircle className="h-10 w-10 text-slate-400" />
+          </div>
+        )}
+        <div className="flex-1">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoChange}
+            className="hidden"
+            id="photo-upload"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            {photoPreview ? 'Ganti Foto' : 'Upload Foto'}
+          </Button>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Format: JPG, PNG, GIF. Max 2MB
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-violet-200 border-t-violet-500" />
+          <p className="text-muted-foreground">Memuat data peserta...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-8 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {/* Header */}
@@ -159,19 +233,22 @@ const PesertaPage = (): React.ReactElement => {
                 placeholder="Cari peserta..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 w-64"
+                className="w-64 pl-9"
               />
             </div>
-            
+
             {/* Add Button */}
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+              setIsAddDialogOpen(open);
+              if (!open) resetForm();
+            }}>
               <DialogTrigger asChild>
                 <Button className="bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white hover:from-violet-600 hover:to-fuchsia-600">
                   <Plus className="mr-2 h-4 w-4" />
                   Tambah Peserta
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Tambah Peserta Baru</DialogTitle>
                   <DialogDescription>
@@ -179,6 +256,7 @@ const PesertaPage = (): React.ReactElement => {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
+                  <PhotoUploadField />
                   <div className="grid gap-2">
                     <Label htmlFor="name">Nama</Label>
                     <Input
@@ -259,9 +337,22 @@ const PesertaPage = (): React.ReactElement => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500">
-                          <UserCircle className="h-6 w-6 text-white" />
-                        </div>
+                        {p.photo ? (
+                          <div className="h-10 w-10 overflow-hidden rounded-full border-2 border-violet-200">
+                            <Image
+                              src={p.photo}
+                              alt={p.name}
+                              width={40}
+                              height={40}
+                              className="h-full w-full object-cover"
+                              unoptimized
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500">
+                            <UserCircle className="h-6 w-6 text-white" />
+                          </div>
+                        )}
                         <span className="font-medium">{p.name}</span>
                       </div>
                     </TableCell>
@@ -300,8 +391,11 @@ const PesertaPage = (): React.ReactElement => {
       </Card>
 
       {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open);
+        if (!open) resetForm();
+      }}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Peserta</DialogTitle>
             <DialogDescription>
@@ -309,6 +403,7 @@ const PesertaPage = (): React.ReactElement => {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <PhotoUploadField />
             <div className="grid gap-2">
               <Label htmlFor="edit-name">Nama</Label>
               <Input
@@ -368,7 +463,7 @@ const PesertaPage = (): React.ReactElement => {
           <DialogHeader>
             <DialogTitle>Hapus Peserta</DialogTitle>
             <DialogDescription>
-              Apakah Anda yakin ingin menghapus peserta &quot;{selectedPeserta?.name}&quot;? 
+              Apakah Anda yakin ingin menghapus peserta &quot;{selectedPeserta?.name}&quot;?
               Tindakan ini tidak dapat dibatalkan.
             </DialogDescription>
           </DialogHeader>
@@ -387,4 +482,3 @@ const PesertaPage = (): React.ReactElement => {
 };
 
 export default PesertaPage;
-

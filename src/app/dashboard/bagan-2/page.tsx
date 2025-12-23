@@ -8,13 +8,14 @@ import ReactFlow, {
   applyNodeChanges,
   type NodeChange,
   type Node,
+  type ReactFlowInstance,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { nodeTypes, edgeTypes } from '@/components/flow/nodeTypes';
 import { nodes as initialNodes, edges } from './data';
 
 const Bagan2Page = (): React.ReactElement => {
-  const reactFlowInstance = useRef<ReturnType<typeof ReactFlow> | null>(null);
+  const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
   const [nodes, setNodes] = useState<Node[]>(initialNodes as Node[]);
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
 
@@ -92,7 +93,7 @@ const Bagan2Page = (): React.ReactElement => {
           edgeTypes={edgeTypes}
           fitView
           onInit={(instance) => {
-            (reactFlowInstance as React.MutableRefObject<typeof instance>).current = instance;
+            reactFlowInstance.current = instance;
           }}
           onNodesChange={onNodesChange}
           onNodeClick={handleNodeClick}
