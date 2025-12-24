@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { Position, type Node, type Edge } from "reactflow";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db, type NodeAssignmentRecord } from "@/lib/db";
+import { getAllPeserta } from "@/lib/pesertaDB";
+import { getNodeAssignments } from "@/lib/nodeAssignmentsDB";
+import type { NodeAssignmentRecord } from "@/lib/db";
 import type { Peserta } from "@/types/peserta";
 
 // Spacing configuration
@@ -140,22 +141,38 @@ type UseBagan1DataResult = {
   edges: Edge[];
   isLoading: boolean;
   assignments: Map<string, NodeAssignmentRecord>;
+  refetch: () => Promise<void>;
 };
 
 export const useBagan1Data = (): UseBagan1DataResult => {
-  const peserta = useLiveQuery(() => db.peserta.toArray(), [], []);
+  const [peserta, setPeserta] = useState<Peserta[]>([]);
+  const [nodeAssignments, setNodeAssignments] = useState<NodeAssignmentRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch node assignments for bagan-1
-  const nodeAssignments = useLiveQuery(
-    () => db.nodeAssignments.where("baganId").equals(BAGAN_ID).toArray(),
-    [],
-    [],
-  );
+  const fetchData = useCallback(async (): Promise<void> => {
+    try {
+      setIsLoading(true);
+      const [pesertaData, assignmentsData] = await Promise.all([
+        getAllPeserta(),
+        getNodeAssignments(BAGAN_ID),
+      ]);
+      setPeserta(pesertaData);
+      setNodeAssignments(assignmentsData);
+    } catch (error) {
+      console.error('Error fetching bagan data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // Create a map of nodeId -> assignment for quick lookup
   const assignmentsMap = useMemo(() => {
     const map = new Map<string, NodeAssignmentRecord>();
-    nodeAssignments?.forEach((assignment) => {
+    nodeAssignments.forEach((assignment) => {
       map.set(assignment.id, assignment);
     });
     return map;
@@ -164,7 +181,7 @@ export const useBagan1Data = (): UseBagan1DataResult => {
   // Create a map of pesertaId -> peserta for quick lookup
   const pesertaMap = useMemo(() => {
     const map = new Map<string, Peserta>();
-    peserta?.forEach((p) => {
+    peserta.forEach((p) => {
       map.set(p.id, p);
     });
     return map;
@@ -559,7 +576,8 @@ export const useBagan1Data = (): UseBagan1DataResult => {
   return {
     nodes,
     edges,
-    isLoading: peserta === undefined,
+    isLoading,
     assignments: assignmentsMap,
+    refetch: fetchData,
   };
 };

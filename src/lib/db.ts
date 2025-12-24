@@ -1,4 +1,5 @@
-import Dexie, { type EntityTable } from 'dexie';
+// Types migrated from IndexedDB to MongoDB
+// Keeping this file for backward compatibility with existing type imports
 
 export type PesertaRecord = {
   id: string;
@@ -15,24 +16,3 @@ export type NodeAssignmentRecord = {
   baganId: string; // 'bagan-1', 'bagan-2', etc.
   assignedAt: Date;
 };
-
-class TheBlindAppDB extends Dexie {
-  peserta!: EntityTable<PesertaRecord, 'id'>;
-  nodeAssignments!: EntityTable<NodeAssignmentRecord, 'id'>;
-
-  constructor() {
-    super('the-blind-app');
-
-    this.version(1).stores({
-      peserta: 'id, name, group, status, createdAt',
-    });
-
-    this.version(2).stores({
-      peserta: 'id, name, group, status, createdAt',
-      nodeAssignments: 'id, pesertaId, baganId, assignedAt',
-    });
-  }
-}
-
-export const db = new TheBlindAppDB();
-

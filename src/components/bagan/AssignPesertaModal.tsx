@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type NodeAssignmentRecord } from '@/lib/db';
+import { getAllPeserta } from '@/lib/pesertaDB';
+import { getNodeAssignments, updateNodeAssignment, deleteNodeAssignment } from '@/lib/nodeAssignmentsDB';
+import type { NodeAssignmentRecord } from '@/lib/db';
+import type { Peserta } from '@/types/peserta';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +25,7 @@ type AssignPesertaModalProps = {
   nodeName: string;
   baganId: string;
   currentPesertaId?: string;
+  onAssignmentChange?: () => void;
 };
 
 export const AssignPesertaModal = ({
@@ -32,19 +35,32 @@ export const AssignPesertaModal = ({
   nodeName,
   baganId,
   currentPesertaId,
+  onAssignmentChange,
 }: AssignPesertaModalProps): React.ReactElement => {
   const [selectedPesertaId, setSelectedPesertaId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pesertaList, setPesertaList] = useState<Peserta[]>([]);
+  const [existingAssignments, setExistingAssignments] = useState<NodeAssignmentRecord[]>([]);
 
-  // Get all peserta from IndexedDB
-  const pesertaList = useLiveQuery(() => db.peserta.toArray(), [], []);
+  // Fetch peserta and assignments when modal opens
+  useEffect(() => {
+    if (open) {
+      const fetchData = async (): Promise<void> => {
+        try {
+          const [pesertaData, assignmentsData] = await Promise.all([
+            getAllPeserta(),
+            getNodeAssignments(baganId),
+          ]);
+          setPesertaList(pesertaData);
+          setExistingAssignments(assignmentsData);
+        } catch (error) {
+          console.error('Error fetching data:', error);
+        }
+      };
 
-  // Get existing assignments to filter out already assigned peserta
-  const existingAssignments = useLiveQuery(
-    () => db.nodeAssignments.where('baganId').equals(baganId).toArray(),
-    [baganId],
-    []
-  );
+      fetchData();
+    }
+  }, [open, baganId]);
 
   // Reset selected peserta when modal opens
   useEffect(() => {
@@ -56,14 +72,14 @@ export const AssignPesertaModal = ({
   // Get assigned peserta IDs (excluding current node)
   const assignedPesertaIds = new Set(
     existingAssignments
-      ?.filter((a) => a.id !== nodeId)
-      .map((a) => a.pesertaId) ?? []
+      .filter((a) => a.id !== nodeId)
+      .map((a) => a.pesertaId)
   );
 
   // Filter available peserta (not assigned to other nodes)
-  const availablePeserta = pesertaList?.filter(
+  const availablePeserta = pesertaList.filter(
     (p) => !assignedPesertaIds.has(p.id) || p.id === currentPesertaId
-  ) ?? [];
+  );
 
   const handleAssign = async (): Promise<void> => {
     if (!selectedPesertaId) return;
@@ -77,10 +93,11 @@ export const AssignPesertaModal = ({
         assignedAt: new Date(),
       };
 
-      await db.nodeAssignments.put(assignment);
+      await updateNodeAssignment(assignment);
+      onAssignmentChange?.();
       onOpenChange(false);
     } catch (error) {
-      // Silent error handling for now
+      console.error('Error assigning peserta:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -89,11 +106,12 @@ export const AssignPesertaModal = ({
   const handleClear = async (): Promise<void> => {
     setIsSubmitting(true);
     try {
-      await db.nodeAssignments.delete(nodeId);
+      await deleteNodeAssignment(nodeId);
       setSelectedPesertaId(null);
+      onAssignmentChange?.();
       onOpenChange(false);
     } catch (error) {
-      // Silent error handling for now
+      console.error('Error clearing assignment:', error);
     } finally {
       setIsSubmitting(false);
     }

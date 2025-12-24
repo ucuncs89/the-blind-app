@@ -1,8 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/lib/db';
 import type { Peserta, PesertaFormData } from '@/types/peserta';
 import {
   addPeserta as addPesertaDB,
@@ -10,6 +8,10 @@ import {
   deletePeserta as deletePesertaDB,
   bulkAddPeserta,
   countPeserta,
+  getAllPeserta,
+  getPesertaByGroup,
+  getPesertaByStatus,
+  searchPeserta as searchPesertaDB,
 } from '@/lib/pesertaDB';
 
 const INITIAL_PESERTA: Peserta[] = [
@@ -82,11 +84,27 @@ type UsePesertaDBResult = {
   addPeserta: (data: PesertaFormData) => Promise<Peserta>;
   updatePeserta: (id: string, data: PesertaFormData) => Promise<Peserta>;
   deletePeserta: (id: string) => Promise<void>;
+  refetch: () => Promise<void>;
 };
 
 export const usePesertaDB = (): UsePesertaDBResult => {
+  const [peserta, setPeserta] = useState<Peserta[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSeeding, setIsSeeding] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+
+  const fetchPeserta = useCallback(async (): Promise<void> => {
+    try {
+      setIsLoading(true);
+      const data = await getAllPeserta();
+      setPeserta(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch peserta'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   // Seed initial data if database is empty
   useEffect(() => {
@@ -101,102 +119,133 @@ export const usePesertaDB = (): UsePesertaDBResult => {
         setError(err instanceof Error ? err : new Error('Failed to seed data'));
       } finally {
         setIsSeeding(false);
+        await fetchPeserta();
       }
     };
 
     seedData();
-  }, []);
+  }, [fetchPeserta]);
 
-  // Live query - automatically updates when data changes
-  const peserta = useLiveQuery(
-    () => db.peserta.toArray(),
-    [],
-    []
+  const addPeserta = useCallback(
+    async (data: PesertaFormData): Promise<Peserta> => {
+      const newPeserta: Peserta = {
+        id: Date.now().toString(),
+        ...data,
+        createdAt: new Date(),
+      };
+
+      await addPesertaDB(newPeserta);
+      await fetchPeserta();
+      return newPeserta;
+    },
+    [fetchPeserta]
   );
 
-  const addPeserta = useCallback(async (data: PesertaFormData): Promise<Peserta> => {
-    const newPeserta: Peserta = {
-      id: Date.now().toString(),
-      ...data,
-      createdAt: new Date(),
-    };
+  const updatePeserta = useCallback(
+    async (id: string, data: PesertaFormData): Promise<Peserta> => {
+      const existing = peserta.find((p) => p.id === id);
 
-    await addPesertaDB(newPeserta);
-    return newPeserta;
-  }, []);
+      if (!existing) {
+        throw new Error('Peserta not found');
+      }
 
-  const updatePeserta = useCallback(async (id: string, data: PesertaFormData): Promise<Peserta> => {
-    const existing = peserta?.find((p) => p.id === id);
+      const updated: Peserta = {
+        ...existing,
+        ...data,
+      };
 
-    if (!existing) {
-      throw new Error('Peserta not found');
-    }
+      await updatePesertaDB(updated);
+      await fetchPeserta();
+      return updated;
+    },
+    [peserta, fetchPeserta]
+  );
 
-    const updated: Peserta = {
-      ...existing,
-      ...data,
-    };
-
-    await updatePesertaDB(updated);
-    return updated;
-  }, [peserta]);
-
-  const deletePeserta = useCallback(async (id: string): Promise<void> => {
-    await deletePesertaDB(id);
-  }, []);
+  const deletePeserta = useCallback(
+    async (id: string): Promise<void> => {
+      await deletePesertaDB(id);
+      await fetchPeserta();
+    },
+    [fetchPeserta]
+  );
 
   return {
-    peserta: peserta ?? [],
-    isLoading: isSeeding || peserta === undefined,
+    peserta,
+    isLoading: isLoading || isSeeding,
     error,
     addPeserta,
     updatePeserta,
     deletePeserta,
+    refetch: fetchPeserta,
   };
 };
 
-// Hook for searching peserta with live query
+// Hook for searching peserta
 export const useSearchPeserta = (query: string): Peserta[] => {
-  const lowerQuery = query.toLowerCase();
+  const [results, setResults] = useState<Peserta[]>([]);
 
-  const results = useLiveQuery(
-    () => {
+  useEffect(() => {
+    const search = async (): Promise<void> => {
       if (!query.trim()) {
-        return db.peserta.toArray();
+        try {
+          const allPeserta = await getAllPeserta();
+          setResults(allPeserta);
+        } catch {
+          setResults([]);
+        }
+        return;
       }
 
-      return db.peserta
-        .filter((p) =>
-          p.name.toLowerCase().includes(lowerQuery) ||
-          p.group.toLowerCase().includes(lowerQuery)
-        )
-        .toArray();
-    },
-    [query],
-    []
-  );
+      try {
+        const data = await searchPesertaDB(query);
+        setResults(data);
+      } catch {
+        setResults([]);
+      }
+    };
 
-  return results ?? [];
+    search();
+  }, [query]);
+
+  return results;
 };
 
 // Hook for getting peserta by group
 export const usePesertaByGroup = (group: string): Peserta[] => {
-  const results = useLiveQuery(
-    () => db.peserta.where('group').equals(group).toArray(),
-    [group],
-    []
-  );
+  const [results, setResults] = useState<Peserta[]>([]);
 
-  return results ?? [];
+  useEffect(() => {
+    const fetch = async (): Promise<void> => {
+      try {
+        const data = await getPesertaByGroup(group);
+        setResults(data);
+      } catch {
+        setResults([]);
+      }
+    };
+
+    fetch();
+  }, [group]);
+
+  return results;
 };
 
 // Hook for getting peserta by status
 export const usePesertaByStatus = (status: Peserta['status']): Peserta[] => {
-  const results = useLiveQuery(
-    () => db.peserta.where('status').equals(status).toArray(),
-    [status],
-    []
-  );
+  const [results, setResults] = useState<Peserta[]>([]);
 
-  return results ?? [];
+  useEffect(() => {
+    const fetch = async (): Promise<void> => {
+      try {
+        const data = await getPesertaByStatus(status);
+        setResults(data);
+      } catch {
+        setResults([]);
+      }
+    };
+
+    fetch();
+  }, [status]);
+
+  return results;
 };

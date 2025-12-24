@@ -19,7 +19,7 @@ type ContextMenuState = {
 
 const Bagan1Page = (): React.ReactElement => {
     const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
-    const { nodes: initialNodes, edges, isLoading, assignments } = useBagan1Data();
+    const { nodes: initialNodes, edges, isLoading, assignments, refetch } = useBagan1Data();
     const [nodes, setNodes] = useState<Node[]>([]);
     const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
 
@@ -39,7 +39,7 @@ const Bagan1Page = (): React.ReactElement => {
         currentPesertaId: "",
     });
 
-    // Sync nodes when data from IndexedDB changes
+    // Sync nodes when data changes
     useEffect(() => {
         if (initialNodes.length > 0) {
             setNodes(initialNodes);
@@ -375,6 +375,7 @@ const Bagan1Page = (): React.ReactElement => {
                 nodeName={assignModal.nodeName}
                 baganId="bagan-1"
                 currentPesertaId={assignModal.currentPesertaId}
+                onAssignmentChange={refetch}
             />
         </div>
     );
