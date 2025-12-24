@@ -1,10 +1,17 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Users, GitBranch, LayoutDashboard, ChevronLeft, ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  Users,
+  GitBranch,
+  LayoutDashboard,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type NavItem = {
   title: string;
@@ -14,23 +21,23 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
-    title: 'Dashboard',
-    href: '/dashboard',
+    title: "Dashboard",
+    href: "/dashboard",
     icon: <LayoutDashboard className="h-5 w-5" />,
   },
   {
-    title: 'Peserta',
-    href: '/dashboard/peserta',
+    title: "Peserta",
+    href: "/dashboard/peserta",
     icon: <Users className="h-5 w-5" />,
   },
   {
-    title: 'Bagan 1',
-    href: '/dashboard/bagan-1',
+    title: "Bagan 1",
+    href: "/dashboard/bagan-1",
     icon: <GitBranch className="h-5 w-5" />,
   },
   {
-    title: 'Bagan 2',
-    href: '/dashboard/bagan-2',
+    title: "Bagan 2",
+    href: "/dashboard/bagan-2",
     icon: <GitBranch className="h-5 w-5" />,
   },
 ];
@@ -42,8 +49,8 @@ const Sidebar = (): React.ReactElement => {
   return (
     <aside
       className={cn(
-        'relative flex h-screen flex-col border-r border-border bg-sidebar transition-all duration-300',
-        collapsed ? 'w-16' : 'w-64'
+        "relative flex h-screen flex-col border-r border-border bg-sidebar transition-all duration-300",
+        collapsed ? "w-16" : "w-64",
       )}
     >
       {/* Header */}
@@ -68,25 +75,23 @@ const Sidebar = (): React.ReactElement => {
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-3">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          
+          const isActive =
+            pathname === item.href || pathname.startsWith(`${item.href}/`);
+
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 isActive
-                  ? 'bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 text-violet-600 dark:text-violet-400'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                collapsed && 'justify-center px-2'
+                  ? "bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 text-violet-600 dark:text-violet-400"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                collapsed && "justify-center px-2",
               )}
             >
               <span
-                className={cn(
-                  'flex-shrink-0',
-                  isActive && 'text-violet-500'
-                )}
+                className={cn("flex-shrink-0", isActive && "text-violet-500")}
               >
                 {item.icon}
               </span>
@@ -98,15 +103,22 @@ const Sidebar = (): React.ReactElement => {
 
       {/* Footer */}
       <div className="border-t border-border p-4">
-        {!collapsed && (
-          <p className="text-xs text-muted-foreground">
-            © 2024 The Blind App
-          </p>
-        )}
+        <div
+          className={cn(
+            "flex items-center",
+            collapsed ? "justify-center" : "justify-between",
+          )}
+        >
+          {!collapsed && (
+            <p className="text-xs text-muted-foreground">
+              © 2024 The Blind App
+            </p>
+          )}
+          <ThemeToggle />
+        </div>
       </div>
     </aside>
   );
 };
 
 export default Sidebar;
-
