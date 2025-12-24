@@ -42,20 +42,44 @@ npm install mongoose
 ```
 
 2. Setup MongoDB connection string di `.env.local`:
-```env
-MONGODB_URI=mongodb://localhost:27017/the-blind-app
-# atau untuk MongoDB Atlas:
-# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/the-blind-app
-```
 
-3. Pastikan MongoDB server berjalan (untuk local development):
-```bash
-# Untuk macOS/Linux dengan Homebrew:
-brew services start mongodb-community
+   **Untuk MongoDB Lokal:**
+   ```env
+   MONGODB_URI=mongodb://localhost:27017/the-blind-app
+   ```
 
-# Untuk Windows, jalankan MongoDB sebagai service atau:
-mongod --dbpath="C:/data/db"
-```
+   **Untuk MongoDB Atlas (Recommended untuk Production):**
+   ```env
+   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/the-blind-app
+   ```
+   
+   Cara mendapatkan connection string dari MongoDB Atlas:
+   1. Login ke [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+   2. Pilih cluster Anda
+   3. Klik tombol "Connect"
+   4. Pilih "Connect your application"
+   5. Copy connection string yang diberikan
+   6. Ganti `<username>` dan `<password>` dengan credentials MongoDB Atlas Anda
+   7. Tambahkan nama database di akhir (contoh: `/the-blind-app`)
+   8. Paste ke file `.env.local`
+   
+   **Note:** Pastikan IP address Anda sudah di-whitelist di MongoDB Atlas Network Access
+
+3. Pastikan MongoDB server berjalan:
+   
+   **Untuk MongoDB Lokal:**
+   ```bash
+   # Untuk macOS/Linux dengan Homebrew:
+   brew services start mongodb-community
+
+   # Untuk Windows, jalankan MongoDB sebagai service atau:
+   mongod --dbpath="C:/data/db"
+   ```
+   
+   **Untuk MongoDB Atlas:**
+   - Tidak perlu install MongoDB lokal
+   - Pastikan IP address Anda sudah di-whitelist di MongoDB Atlas
+   - Connection string sudah cukup untuk koneksi
 
 ## Catatan Penting
 
