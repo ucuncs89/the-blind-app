@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useCallback, useMemo } from "react";
+import Image from "next/image";
 import ReactFlow, {
   Background,
   applyNodeChanges,
@@ -169,7 +170,18 @@ const ViewQFFinalPage = (): React.ReactElement => {
   }
 
   return (
-    <div className="h-screen w-screen">
+    <div className="h-screen w-screen relative">
+      {/* Logo Watermark */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+        <Image
+          src="/logo.png"
+          alt="Logo"
+          width={400}
+          height={400}
+          className="opacity-10"
+          priority
+        />
+      </div>
       <ReactFlow
         nodes={nodesWithSelection}
         edges={edges}
